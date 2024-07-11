@@ -50,4 +50,4 @@ const loadContractsFromStorage = (): ExternalContracts => {
 
 const externalContracts: ExternalContracts = loadContractsFromStorage();
 
-export default externalContracts as GenericContractsDeclaration;
+export default externalContracts satisfies GenericContractsDeclaration;

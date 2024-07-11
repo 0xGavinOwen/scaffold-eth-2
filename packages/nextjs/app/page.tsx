@@ -6,7 +6,7 @@ import type { NextPage } from "next";
 import { Abi, AbiFunction } from "viem";
 import { useAccount } from "wagmi";
 import { type BaseError, useDeployContract, usePublicClient, useWaitForTransactionReceipt } from "wagmi";
-import { BugAntIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { BugAntIcon } from "@heroicons/react/24/outline";
 import { Address } from "~~/components/scaffold-eth";
 
 const Home: NextPage = () => {
@@ -128,7 +128,7 @@ const Home: NextPage = () => {
             <p className="my-2 font-medium">Connected Address:</p>
             <Address address={connectedAddress} />
           </div>
-          <p className="text-center text-lg">
+          {/* <p className="text-center text-lg">
             Get started by editing{" "}
             <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
               packages/nextjs/app/page.tsx
@@ -143,7 +143,7 @@ const Home: NextPage = () => {
             <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
               packages/hardhat/contracts
             </code>
-          </p>
+          </p> */}
         </div>
 
         <div className="flex-grow bg-base-300 w-full mt-16 px-8 py-12">
@@ -158,7 +158,7 @@ const Home: NextPage = () => {
                 tab.
               </p>
             </div>
-            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
+            {/* <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
               <MagnifyingGlassIcon className="h-8 w-8 fill-secondary" />
               <p>
                 Explore your local transactions with the{" "}
@@ -167,44 +167,96 @@ const Home: NextPage = () => {
                 </Link>{" "}
                 tab.
               </p>
-            </div>
+            </div> */}
           </div>
 
-          <div className="m-3">
-            <div className="border border-red-400">
-              <input type="file" accept=".json" onChange={handleAbiFileChange} ref={fileInputRef} />
-              {abiFile && <p>ABI File: {abiFile.name}</p>}
-              <br />
+          <br />
 
-              <textarea placeholder="bytecode" value={userBytecode} onChange={e => setUserBytecode(e.target.value)} />
-              <br />
+          <div className="max-w-2xl mx-auto bg-base-100 shadow-lg rounded-lg overflow-hidden">
+            <div className="px-6 py-4">
+              <h2 className="text-2xl font-bold mb-4">Deploy Contract</h2>
+
+              <div className="mb-4">
+                <label className="block  text-sm font-bold mb-2" htmlFor="abi-file">
+                  Upload ABI JSON file
+                </label>
+                <input
+                  id="abi-file"
+                  type="file"
+                  accept=".json"
+                  onChange={handleAbiFileChange}
+                  ref={fileInputRef}
+                  className="shadow appearance-none border rounded w-full py-2 px-3  leading-tight focus:outline-none focus:shadow-outline"
+                />
+                {abiFile && <p className="mt-2 text-sm ">ABI File: {abiFile.name}</p>}
+              </div>
+
+              <div className="mb-4">
+                <label className="block  text-sm font-bold mb-2" htmlFor="bytecode">
+                  Bytecode
+                </label>
+                <textarea
+                  id="bytecode"
+                  placeholder="Enter bytecode"
+                  value={userBytecode}
+                  onChange={e => setUserBytecode(e.target.value)}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 mb-3 leading-tight focus:outline-none focus:shadow-outline bg-base-300 "
+                  rows={4}
+                />
+              </div>
 
               {getConstructorInputs()?.map((input, index) => (
-                <div key={index}>
-                  <label>
-                    {input.name} ({input.type}):{" "}
+                <div key={index} className="mb-4">
+                  <label className="block text-sm font-bold mb-2" htmlFor={`constructor-${index}`}>
+                    {input.name}
                   </label>
                   <input
+                    id={`constructor-${index}`}
                     type="text"
+                    placeholder={`(${input.type})`}
                     value={constructorArgs[index] || ""}
                     onChange={e => handleConstructorArgChange(index, e.target.value)}
+                    className="shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline bg-base-300 "
                   />
                 </div>
               ))}
 
-              <button onClick={handleDeploy}>{isPending ? "Confirming..." : "Deploy Contract"}</button>
-
-              {hash && <div>Transaction Hash: {hash}</div>}
-              {isConfirming && <div>Waiting for confirmation...</div>}
-
-              {isConfirmed && (
-                <div>
-                  Transaction confirmed.
-                  {contractAddress && <div>Contract deployed at: {contractAddress}</div>}
-                  {error && <div>Error: {(error as BaseError).shortMessage || error.message}</div>}
-                </div>
-              )}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={handleDeploy}
+                  className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+                  disabled={isPending}
+                >
+                  {isPending ? "Confirming..." : "Deploy Contract"}
+                </button>
+              </div>
             </div>
+
+            {(hash || isConfirming || isConfirmed || error) && (
+              <div className="px-6 py-4 bg-gray-100">
+                {hash && (
+                  <p className="text-sm text-gray-600 mb-2">
+                    <span className="font-bold">Transaction Hash:</span> {hash}
+                  </p>
+                )}
+                {isConfirming && <p className="text-sm text-blue-600 mb-2">Waiting for confirmation...</p>}
+                {isConfirmed && (
+                  <div>
+                    <p className="text-sm text-green-600 mb-2">Transaction confirmed.</p>
+                    {contractAddress && (
+                      <p className="text-sm text-gray-600 mb-2">
+                        <span className="font-bold">Contract deployed at:</span> {contractAddress}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {error && (
+                  <p className="text-sm text-red-600 mb-2">
+                    <span className="font-bold">Error:</span> {(error as BaseError).shortMessage || error.message}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

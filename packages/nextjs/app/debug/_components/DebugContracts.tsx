@@ -91,38 +91,88 @@ export function DebugContracts() {
   return (
     <div className="flex flex-col gap-y-6 lg:gap-y-8 py-8 lg:py-12 justify-center items-center">
       {contractNames.length === 0 ? (
-        <div>
-          <p className="text-3xl mt-14">No contracts found!</p>
-          <form onSubmit={handleSubmit}>
-            <input
-              name="chainId"
-              value={contractInfo.chainId}
-              onChange={handleInputChange}
-              placeholder="Chain ID"
-              required
-            />
-            <input
-              name="contractName"
-              value={contractInfo.contractName}
-              onChange={handleInputChange}
-              placeholder="Contract Name"
-              required
-            />
-            <input
-              name="address"
-              value={contractInfo.address}
-              onChange={handleInputChange}
-              placeholder="Contract Address"
-              required
-            />
-            <div>
-              <label htmlFor="abi-upload">Upload ABI JSON file:</label>
-              <input id="abi-upload" type="file" accept=".json" onChange={handleAbiFileUpload} required />
+        <div className="max-w-2xl mx-auto">
+          <p className="text-3xl font-bold text-center mb-8 ">No contracts found!</p>
+
+          <div className="bg-base-100 shadow-lg rounded-lg overflow-hidden">
+            <h2 className="text-2xl font-bold text-center py-4 bg-base-300">Debug Contract</h2>
+
+            <div className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label htmlFor="chainId" className="block text-sm font-medium mb-1">
+                    Chain ID
+                  </label>
+                  <input
+                    id="chainId"
+                    name="chainId"
+                    value={contractInfo.chainId}
+                    onChange={handleInputChange}
+                    placeholder="Enter Chain ID"
+                    required
+                    className="mt-1 block w-full px-3 py-2 bg-base-300 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="contractName" className="block text-sm font-medium mb-1">
+                    Contract Name
+                  </label>
+                  <input
+                    id="contractName"
+                    name="contractName"
+                    value={contractInfo.contractName}
+                    onChange={handleInputChange}
+                    placeholder="Enter Contract Name"
+                    required
+                    className="mt-1 block w-full px-3 py-2 bg-base-300 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="address" className="block text-sm font-medium mb-1">
+                    Contract Address
+                  </label>
+                  <input
+                    id="address"
+                    name="address"
+                    value={contractInfo.address}
+                    onChange={handleInputChange}
+                    placeholder="Enter Contract Address"
+                    required
+                    className="mt-1 block w-full px-3 py-2 bg-base-300 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="abi-upload" className="block text-sm font-medium mb-1">
+                    Upload ABI JSON file:
+                  </label>
+                  <input
+                    id="abi-upload"
+                    type="file"
+                    accept=".json"
+                    onChange={handleAbiFileUpload}
+                    required
+                    className="mt-1 block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-indigo-50 file:text-indigo-700
+                    hover:file:bg-indigo-100"
+                  />
+                </div>
+                {contractInfo.abi && (
+                  <p className="text-sm text-green-600 font-medium">ABI file uploaded successfully.</p>
+                )}
+                <div>
+                  <button
+                    type="submit"
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Save Contract Information
+                  </button>
+                </div>
+              </form>
             </div>
-            {contractInfo.abi && <p>ABI file uploaded successfully.</p>}
-            <br />
-            <button type="submit">Save Contract Information</button>
-          </form>
+          </div>
         </div>
       ) : (
         <>
