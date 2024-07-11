@@ -1,13 +1,120 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { NextPage } from "next";
+import { Abi, AbiFunction } from "viem";
 import { useAccount } from "wagmi";
+import { type BaseError, useDeployContract, usePublicClient, useWaitForTransactionReceipt } from "wagmi";
 import { BugAntIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { Address } from "~~/components/scaffold-eth";
 
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
+  // Helper functions
+  function formatBytecode(bytecode: string): `0x${string}` {
+    if (!bytecode.startsWith("0x")) {
+      return `0x${bytecode}` as `0x${string}`;
+    }
+    return bytecode as `0x${string}`;
+  }
+
+  function isValidBytecode(bytecode: string): boolean {
+    const hexRegex = /^(0x)?[0-9A-Fa-f]+$/;
+    return hexRegex.test(bytecode);
+  }
+
+  const { data: hash, error, isPending, deployContract } = useDeployContract();
+  const publicClient = usePublicClient();
+  const [contractAddress, setContractAddress] = useState("");
+  const [userBytecode, setUserBytecode] = useState("");
+  const [abiFile, setAbiFile] = useState<File | null>(null);
+  const [parsedAbi, setParsedAbi] = useState<Abi | null>(null);
+  const [constructorArgs, setConstructorArgs] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  useEffect(() => {
+    async function getContractAddress() {
+      if (isConfirmed && hash && publicClient) {
+        // Add check for publicClient
+        try {
+          const receipt = await publicClient.getTransactionReceipt({ hash });
+          if (receipt.contractAddress) {
+            setContractAddress(receipt.contractAddress);
+          } else if (receipt.status === "success") {
+            const tx = await publicClient.getTransaction({ hash });
+            const creates = (tx as any).creates;
+            if (creates) {
+              setContractAddress(creates);
+            }
+          }
+        } catch (error) {
+          console.error("Error getting contract address:", error);
+        }
+      }
+    }
+
+    getContractAddress();
+  }, [isConfirmed, hash, publicClient]);
+
+  const handleAbiFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setAbiFile(file);
+      try {
+        const abiContent = await file.text();
+        const parsedAbi = JSON.parse(abiContent) as Abi;
+        setParsedAbi(parsedAbi);
+
+        // Reset constructor args when new ABI is loaded
+        setConstructorArgs([]);
+      } catch (error) {
+        console.error("Error parsing ABI file", error);
+      }
+    }
+  };
+
+  const getConstructorInputs = () => {
+    if (!parsedAbi) return null;
+    const constructorAbi = parsedAbi.find((item): item is AbiFunction => item.type === "constructor");
+    return constructorAbi?.inputs || [];
+  };
+
+  const handleConstructorArgChange = (index: number, value: string) => {
+    const newArgs = [...constructorArgs];
+    newArgs[index] = value;
+    setConstructorArgs(newArgs);
+  };
+
+  const handleDeploy = async () => {
+    if (!parsedAbi) {
+      console.error("Please upload an ABI file");
+      return;
+    }
+
+    if (!isValidBytecode(userBytecode)) {
+      console.error("Invalid bytecode format");
+      return;
+    }
+
+    try {
+      const formattedBytecode = formatBytecode(userBytecode);
+      console.log("Deploying bytecode:", formattedBytecode);
+      console.log("Constructor args:", constructorArgs);
+
+      deployContract({
+        abi: parsedAbi,
+        bytecode: formattedBytecode,
+        args: constructorArgs, // Use the constructor arguments
+      });
+    } catch (error) {
+      console.error("Error deploying contract", error);
+    }
+  };
 
   return (
     <>
@@ -60,6 +167,43 @@ const Home: NextPage = () => {
                 </Link>{" "}
                 tab.
               </p>
+            </div>
+          </div>
+
+          <div className="m-3">
+            <div className="border border-red-400">
+              <input type="file" accept=".json" onChange={handleAbiFileChange} ref={fileInputRef} />
+              {abiFile && <p>ABI File: {abiFile.name}</p>}
+              <br />
+
+              <textarea placeholder="bytecode" value={userBytecode} onChange={e => setUserBytecode(e.target.value)} />
+              <br />
+
+              {getConstructorInputs()?.map((input, index) => (
+                <div key={index}>
+                  <label>
+                    {input.name} ({input.type}):{" "}
+                  </label>
+                  <input
+                    type="text"
+                    value={constructorArgs[index] || ""}
+                    onChange={e => handleConstructorArgChange(index, e.target.value)}
+                  />
+                </div>
+              ))}
+
+              <button onClick={handleDeploy}>{isPending ? "Confirming..." : "Deploy Contract"}</button>
+
+              {hash && <div>Transaction Hash: {hash}</div>}
+              {isConfirming && <div>Waiting for confirmation...</div>}
+
+              {isConfirmed && (
+                <div>
+                  Transaction confirmed.
+                  {contractAddress && <div>Contract deployed at: {contractAddress}</div>}
+                  {error && <div>Error: {(error as BaseError).shortMessage || error.message}</div>}
+                </div>
+              )}
             </div>
           </div>
         </div>

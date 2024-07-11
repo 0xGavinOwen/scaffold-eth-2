@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { BarsArrowUpIcon } from "@heroicons/react/20/solid";
 import { ContractUI } from "~~/app/debug/_components/contract";
@@ -8,10 +8,23 @@ import { ContractName } from "~~/utils/scaffold-eth/contract";
 import { getAllContracts } from "~~/utils/scaffold-eth/contractsData";
 
 const selectedContractStorageKey = "scaffoldEth2.selectedContract";
-const contractsData = getAllContracts();
-const contractNames = Object.keys(contractsData) as ContractName[];
+
+interface ContractInfo {
+  chainId: string;
+  contractName: string;
+  address: string;
+  abi: string;
+}
 
 export function DebugContracts() {
+  const [isClient, setIsClient] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [contractsData, setContractsData] = useState(() => getAllContracts());
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [contractNames, setContractNames] = useState<ContractName[]>(
+    () => Object.keys(contractsData) as ContractName[],
+  );
+
   const [selectedContract, setSelectedContract] = useLocalStorage<ContractName>(
     selectedContractStorageKey,
     contractNames[0],
@@ -22,12 +35,95 @@ export function DebugContracts() {
     if (!contractNames.includes(selectedContract)) {
       setSelectedContract(contractNames[0]);
     }
-  }, [selectedContract, setSelectedContract]);
+  }, [selectedContract, setSelectedContract, contractNames]);
+
+  const [contractInfo, setContractInfo] = useState<ContractInfo>({
+    chainId: "",
+    contractName: "",
+    address: "",
+    abi: "",
+  });
+
+  useEffect(() => {
+    const savedInfo = localStorage.getItem("contractInfo");
+    if (savedInfo) {
+      setContractInfo(JSON.parse(savedInfo));
+    }
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setContractInfo(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAbiFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = event => {
+        try {
+          const json = JSON.parse(event.target?.result as string);
+          setContractInfo(prev => ({ ...prev, abi: JSON.stringify(json) }));
+        } catch (error) {
+          console.error("Invalid JSON file", error);
+          alert("Invalid JSON file. Please upload a valid ABI JSON file.");
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem("contractInfo", JSON.stringify(contractInfo));
+    alert("Contract information saved!");
+    window.location.reload();
+  };
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return null; // or a loading indicator
+  }
 
   return (
     <div className="flex flex-col gap-y-6 lg:gap-y-8 py-8 lg:py-12 justify-center items-center">
       {contractNames.length === 0 ? (
-        <p className="text-3xl mt-14">No contracts found!</p>
+        <div>
+          <p className="text-3xl mt-14">No contracts found!</p>
+          <form onSubmit={handleSubmit}>
+            <input
+              name="chainId"
+              value={contractInfo.chainId}
+              onChange={handleInputChange}
+              placeholder="Chain ID"
+              required
+            />
+            <input
+              name="contractName"
+              value={contractInfo.contractName}
+              onChange={handleInputChange}
+              placeholder="Contract Name"
+              required
+            />
+            <input
+              name="address"
+              value={contractInfo.address}
+              onChange={handleInputChange}
+              placeholder="Contract Address"
+              required
+            />
+            <div>
+              <label htmlFor="abi-upload">Upload ABI JSON file:</label>
+              <input id="abi-upload" type="file" accept=".json" onChange={handleAbiFileUpload} required />
+            </div>
+            {contractInfo.abi && <p>ABI file uploaded successfully.</p>}
+            <br />
+            <button type="submit">Save Contract Information</button>
+          </form>
+        </div>
       ) : (
         <>
           {contractNames.length > 1 && (
